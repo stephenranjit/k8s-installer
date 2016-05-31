@@ -1,0 +1,10 @@
+[Unit]
+Description="flanneld daemon"
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/default/flanneld
+ExecStart=/usr/bin/flanneld $FLANNELD_OPTS
+
+[Install]
+WantedBy=multi-user.target
