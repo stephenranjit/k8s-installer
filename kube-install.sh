@@ -439,15 +439,15 @@ if [[ $INSTALLER_TYPE == 'slave' ]]; then
 
 else
   trap before_exit EXIT
-  install_etcd
-
-  trap before_exit EXIT
   if [[ $OS == "debian" ]]; then
     copy_master_binaries
   fi
 
   trap before_exit EXIT
   copy_master_configs
+
+  trap before_exit EXIT
+  install_etcd
 
   trap before_exit EXIT
   update_flanneld_subnet
