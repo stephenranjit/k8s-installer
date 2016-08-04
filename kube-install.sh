@@ -253,7 +253,7 @@ update_slave_configs() {
     sed -i "/KUBELET_API_SERVER=*/c\KUBELET_API_SERVER='"--api-servers=http:\/\/$MASTER_IP:8080"'" /etc/kubernetes/kubelet
     sed -i '/KUBELET_ADDRESS=*/c\KUBELET_ADDRESS="--address=0.0.0.0"' /etc/kubernetes/kubelet
     sed -i s/KUBELET_HOSTNAME=.*/KUBELET_HOSTNAME="--hostname-override=$SLAVE_IP"/g /etc/kubernetes/kubelet
-    sed -i s/KUBELET_ARGS=.*/KUBELET_ARGS="--maximum-dead-containers=0 --image-gc-high-threshold=30"/g /etc/kubernetes/kubelet
+    sed -i s/KUBELET_ARGS=.*/KUBELET_ARGS="--maximum-dead-containers=0"/g /etc/kubernetes/kubelet
     
   elif [[ $OS == "debian" ]]; then
     sudo cp -vr $SCRIPT_DIR/config/thirdparty/flanneld.conf /etc/init/flanneld.conf
