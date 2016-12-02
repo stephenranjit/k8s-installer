@@ -44,14 +44,14 @@ echo "#################### Installing kubernetes $INSTALLER_TYPE #########"
 echo "####################################################################"
 
 export KUBERNETES_RELEASE_VERSION=v1.2.4
-export ETCD_VERSION=v2.3.1
+export ETCD_VERSION=v2.3.7
 export DEFAULT_CONFIG_PATH=/etc/default
 export ETCD_EXECUTABLE_LOCATION=/usr/bin
 export FLANNEL_EXECUTABLE_LOCATION=/usr/bin
 export ETCD_PORT=2379
 export FLANNEL_SUBNET=10.100.0.0/16
 export FLANNEL_VERSION=0.5.5
-export DOCKER_VERSION=1.6.2
+export DOCKER_VERSION=1.12.3
 export KUBERNETES_CLUSTER_ID=k8sCluster
 export KUBERNETES_DOWNLOAD_PATH=/tmp
 export KUBERNETES_EXTRACT_DIR=$KUBERNETES_DOWNLOAD_PATH/kubernetes
@@ -118,13 +118,26 @@ EOF
 }
 
 install_docker() {
-  echo "Installing docker version $DOCKER_VERSION ..."
-    sudo apt-get -yy update
-    echo "deb http://get.docker.com/ubuntu docker main" | sudo tee /etc/apt/sources.list.d/docker.list
-    sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
-    sudo apt-get -yy update
-    sudo apt-get -o Dpkg::Options::='--force-confnew' -yy install lxc-docker-$DOCKER_VERSION
-    sudo service docker stop || true
+  if [[ $OS == "debian" ]]; then
+  	echo "Installing docker version $DOCKER_VERSION ..."
+	sudo apt-get -yy update
+	echo "deb http://get.docker.com/ubuntu docker main" | sudo tee /etc/apt/sources.list.d/docker.list
+	sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
+	sudo apt-get -yy update
+	sudo apt-get -o Dpkg::Options::='--force-confnew' -yy install lxc-docker-$DOCKER_VERSION
+	sudo service docker stop || true
+  elif [[ $OS == "redhat" ]]; then
+	sudo tee /etc/yum.repos.d/docker.repo <<-'EOF'
+[dockerrepo]
+name=Docker Repository
+baseurl=https://yum.dockerproject.org/repo/main/centos/7/
+enabled=1
+gpgcheck=1
+gpgkey=https://yum.dockerproject.org/gpg
+EOF
+	sudo yum remove -y docker.x86_64 docker-common.x86_64 docker-selinux.x86_64
+	sudo yum install -y docker-engine
+  fi
 }
 
 install_prereqs() {
@@ -176,13 +189,14 @@ download_kubernetes_release() {
     sudo curl -L $kubernetes_download_url -o kubernetes.tar.gz;
     sudo tar xzvf kubernetes.tar.gz -C $KUBERNETES_EXTRACT_DIR;
   elif [[ $OS == "redhat" ]]; then
-    sudo yum update -y
+    #sudo yum update -y
     sudo tee /etc/yum.repos.d/kubernetes.repo <<-'EOF'
 [virt7-docker-common-release]
 name=virt7-docker-common-release
 baseurl=http://cbs.centos.org/repos/virt7-docker-common-release/x86_64/os/
 gpgcheck=0
 EOF
+    sudo yum remove -y docker-engine docker-engine-selinux engine-common
     sudo yum -y install --enablerepo=virt7-docker-common-release kubernetes
   fi
 
@@ -421,12 +435,10 @@ if [[ $OS == "debian" ]]; then
   extract_server_binaries
 fi
 
-if [[ $INSTALLER_TYPE == 'slave' ]]; then
-  trap before_exit EXIT
-  if [[ $OS == "debian" ]]; then
-    install_docker
-  fi
+trap before_exit EXIT
+install_docker
 
+if [[ $INSTALLER_TYPE == 'slave' ]]; then
   trap before_exit EXIT
   download_flannel_release
 
